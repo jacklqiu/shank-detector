@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "app",
+    "name": "Shawshank Redemption",
     "slug": "app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,9 +20,7 @@
     ],
     "ios": {
       "config": {
-        "googleMaps": {
-          "apiKey" : "AIzaSyC0rLq5OEc2m-Vn5_myNhU7IEvcJrV-jyE"
-        }
+        "googleMapsApiKey":  "AIzaSyC0rLq5OEc2m-Vn5_myNhU7IEvcJrV-jyE"
       },
       "supportsTablet": true
     },

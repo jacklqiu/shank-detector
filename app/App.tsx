@@ -6,6 +6,10 @@ import useCachedResources from './hooks/useCachedResources'
 import useColorScheme from './hooks/useColorScheme'
 import Navigation from './navigation'
 import {DefaultTheme,  Provider as PaperProvider } from 'react-native-paper';
+import { firebaseConfig } from './config/Firebase'
+import { initializeApp } from 'firebase/app'
+
+initializeApp(firebaseConfig);
 
 
 const theme = {

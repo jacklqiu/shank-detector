@@ -1,6 +1,6 @@
 import React, { FC } from 'react'
-import {Text, withTheme} from 'react-native-paper';
-import {View} from 'react-native';
+import {withTheme} from 'react-native-paper';
+import {Text, View} from 'react-native';
 
 const SplashScreen: FC = () => {
   return (
@@ -12,19 +12,15 @@ const SplashScreen: FC = () => {
       }}
     >
       <View style={{ width: '100%'}}>
-        {/* <Text style={{fontFamily:"Roboto", fontSize:24, fontWeight:'bold', color: 'white'}}>
+        <Text style={{fontSize:24, fontWeight:'bold', color: 'white'}}>
           Remember to
         </Text>
-        <Text style={{fontFamily:"Roboto", fontSize:144, fontWeight:'bold', color: 'white'}} onPressIn={} onPressOut={}>
+        <Text style={{fontSize:144, fontWeight:'bold', color: 'white'}}>
           Stay Safe
-        </Text> */}
+        </Text>
       </View>
     </View>
   );
 }
-
-// const styles = StyleSheet.create({
-
-// })
 
 export default withTheme(SplashScreen);
