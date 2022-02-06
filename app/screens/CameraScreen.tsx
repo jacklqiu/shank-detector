@@ -63,7 +63,7 @@ export default class App extends React.Component<undefined, State> {
   }
 
    _maybeSendReport = async () => {
-    return await fetch('http://f574-2a0c-5bc0-40-2e34-83a0-4440-5dc9-3849.ngrok.io/predict', {
+    return await fetch('http://d266-2a0c-5bc0-40-2e34-83a0-4440-5dc9-3849.ngrok.io/predict', {
       method: 'POST',
       headers: {
         Accept: 'application/json',

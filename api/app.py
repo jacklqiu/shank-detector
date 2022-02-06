@@ -1,29 +1,36 @@
-import flask
 import io
-import string
-import time
-import os
 import numpy as np
-import tensorflow as tf
+import requests
 from PIL import Image
 from flask import Flask, jsonify, request
+import firebase_admin
+from firebase_admin import credentials, firestore, storage, db
+from datetime import datetime, date
+from json import dumps
+# Some basic setup:
+# Setup detectron2 logger
+import detectron2
+from detectron2.utils.logger import setup_logger
 
-def predict_img(file_path: str):
-  cfg = get_cfg()
-  cfg.OUTPUT_DIR = "./model_weights"
-  cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
-  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8   # set a custom testing threshold
-  predictor = DefaultPredictor(cfg)
-  im = cv2.imread(file_path)
-  im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-  outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
-  v = Visualizer(im[:, :, ::-1],
-              #  MetadataCatalog.get("knife_train"),
-                   scale=0.5)
-  print(len(outputs['instances']))
-  out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-  output_image = out.get_image()[:, :, ::-1]
-  return output_image
+# import some common libraries
+import numpy as np
+import os, json, cv2, random
+from flask_ngrok import run_with_ngrok
+
+# import some common detectron2 utilities
+from detectron2 import model_zoo
+from detectron2.engine import DefaultPredictor
+from detectron2.config import get_cfg
+from detectron2.utils.visualizer import Visualizer
+from detectron2.data import MetadataCatalog, DatasetCatalog
+from detectron2.utils.visualizer import ColorMode    
+from matplotlib import pyplot as plt
+from prediction import predict_from_img
+setup_logger()
+
+cred = credentials.Certificate("firebase.json")
+firebase_admin.initialize_app(cred, {'storageBucket': 'ichack-2022.appspot.com', "databaseURL": "https://ichack-2022-default-rtdb.firebaseio.com/"})
+
 
 # Example
 # img = predict("./photos/2022-02-05-232238.jpg")
@@ -32,32 +39,63 @@ def predict_img(file_path: str):
 
 def prepare_image(img):
     img = Image.open(io.BytesIO(img))
-    img = img.resize((224, 224))
     img = np.array(img)
-    img = np.expand_dims(img, 0)
     return img
 
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
 
-def predict_result(img):
-    return 1 if model.predict(img)[0][0] > 0.5 else 0
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError ("Type %s not serializable" % type(obj))
 
 
 app = Flask(__name__)
+run_with_ngrok(app)
+  
 
 @app.route('/predict', methods=['POST'])
 def infer_image():
-    if 'file' not in request.files:
-        return "Please try again. The Image doesn't exist"
-    
-    file = request.files.get('file')
+    print("Received")
+    request_body = request.json
+    if 'image_url' not in request_body or 'longitude' not in request_body or 'latitude' not in request_body:
+        return "Please try again. The Image doesn't exist", 400
+    print("Got request")
+    image_url = request_body["image_url"]
+    longitude = request_body["longitude"]
+    latitude = request_body["latitude"]
+    print("Decoded request")
+    img_data = requests.get(image_url).content
+    # print(img_data)
+    print("Got image")
+    # img_bytes = img_data.read()
+    img = prepare_image(img_data)
+    # print(img.shape)
+    # cv2.imshow('img', img)
+    # cv2.waitKey()
+    prediction, prediction_outcome = predict_from_img(img)
+    prediction_im = Image.fromarray(prediction)
+    prediction_im.save('test.jpg')
+    # if (prediction_outcome):
+    bucket = storage.bucket()
+    blob = bucket.blob('test')
+    blob.upload_from_filename('test.jpg')
 
-    if not file:
-        return
+    # Opt : if you want to make public access from the URL
+    blob.make_public()
+    prediction_url = blob.public_url
 
-    img_bytes = file.read()
-    img = prepare_image(img_bytes)
+    ## store in firebase database {longitude, latitude, prediction_url}
+    points_ref = db.reference('points')
+    points_ref.push({
+        'title': 'incident', 
+        'longitude': longitude,
+        'latitude': latitude,
+        'image_url': prediction_url,
+        'timestamp': dumps(datetime.now(), default=json_serial)
+    })
 
-    return jsonify(prediction=predict_result(img))
+    return str(prediction_outcome)
     
 
 @app.route('/', methods=['GET'])
@@ -66,4 +104,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run()
