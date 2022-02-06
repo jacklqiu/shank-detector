@@ -80,19 +80,19 @@ function BottomTabNavigator() {
 
   return (
     <BottomTab.Navigator
-      initialRouteName="Camera"
+      initialRouteName="MapScreen"
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
       }}
     >
-      <BottomTab.Screen
+      {/* <BottomTab.Screen
         name="HomeScreen"
         component={HomeScreen}
         options={{
           title: 'Home Screen',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
-      />
+      /> */}
       <BottomTab.Screen
         name="MapScreen"
         component={MapScreen}

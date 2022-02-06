@@ -10,6 +10,7 @@ import {
   Platform,
   Share,
   StatusBar,
+  Modal,
 } from 'react-native'
 import { AntDesign } from '@expo/vector-icons'
 import EditScreenInfo from '../components/EditScreenInfo'
@@ -18,15 +19,41 @@ import { RootTabScreenProps } from '../types'
 import { getApps, initializeApp } from 'firebase/app'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import * as ImagePicker from 'expo-image-picker'
-import uuid from 'react-native-uuid';
+import uuid from 'react-native-uuid'
+import * as Location from 'expo-location'
 
-export default class App extends React.Component {
-  state = {
-    image: null,
+interface State {
+  image?: string
+  uploading: boolean
+  location?: Location.LocationObject
+  errorMsg?: string
+  sent: boolean
+}
+
+export default class App extends React.Component<undefined, State> {
+  state: State = {
+    image: undefined,
     uploading: false,
+    location: undefined,
+    errorMsg: undefined,
+    sent: false,
   }
 
   async componentDidMount() {
+
+      let { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== 'granted') {
+        this.setState({
+          errorMsg: 'Permission to access location was denied',
+        })
+        return
+      }
+      let location = await Location.getCurrentPositionAsync({})
+      this.setState({
+        location,
+      })
+      console.log(location)
+  
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (status !== 'granted') {
@@ -35,12 +62,29 @@ export default class App extends React.Component {
     }
   }
 
+   _maybeSendReport = async () => {
+    return await fetch('http://f574-2a0c-5bc0-40-2e34-83a0-4440-5dc9-3849.ngrok.io/predict', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        image_url: this.state.image,
+        timestamp: Date.now(),
+        longitude: String(this.state.location?.coords.longitude),
+        latitude: String(this.state.location?.coords.latitude),
+      }),
+    })
+      .then(() => alert("Report was sent"))
+  }
+
   render() {
     let { image } = this.state
 
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {!!image && (
+        {/* {!!image && (
           <Text
             style={{
               fontSize: 20,
@@ -51,10 +95,17 @@ export default class App extends React.Component {
           >
             To submit a report you must take a photo of the crime
           </Text>
+        )} */}
+        <Button onPress={this._takePhoto} title="Snap a incident" color="#841584" />
+
+        {this.state.image && (this.state.location ? (
+          <Button
+            onPress={this._maybeSendReport}
+            title="Send!"
+            color="#841584"
+          />) : <Text>Loading location data...</Text>
         )}
-
-        <Button onPress={this._takePhoto} title="Take a photo" />
-
+        
         {this._maybeRenderImage()}
         {this._maybeRenderUploadingOverlay()}
 
@@ -115,9 +166,10 @@ export default class App extends React.Component {
   }
 
   _takePhoto = async () => {
+    this.setState({image:undefined})
     let pickerResult = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
-      aspect: [4, 3],
+      // aspect: [4, 3],
     })
 
     this._handleImagePicked(pickerResult)
@@ -126,7 +178,6 @@ export default class App extends React.Component {
   _handleImagePicked = async (pickerResult: any) => {
     try {
       this.setState({ uploading: true })
-
       if (!pickerResult.cancelled) {
         const uploadUrl = await uploadImageAsync(pickerResult.uri)
         this.setState({ image: uploadUrl })
@@ -157,11 +208,11 @@ async function uploadImageAsync(uri: string) {
     xhr.send()
   })
 
-  const fileRef = ref(getStorage(), uuid.v4().toString());
+  const fileRef = ref(getStorage(), uuid.v4().toString())
   const result = await uploadBytes(fileRef, blob)
 
   // We're done with the blob, close and release it
   blob.close()
 
-  return await getDownloadURL(fileRef);
+  return await getDownloadURL(fileRef)
 }
