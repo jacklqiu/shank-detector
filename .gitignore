@@ -12,3 +12,7 @@ web-build/
 
 # macOS
 .DS_Store
+
+
+# model weights
+detector/model_weights/model_final.pth
