@@ -27,7 +27,7 @@ def predict(file_path: str):
   cfg = get_cfg()
   cfg.OUTPUT_DIR = "./model_weights"
   cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
-  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.9   # set a custom testing threshold
+  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8   # set a custom testing threshold
   predictor = DefaultPredictor(cfg)
   im = cv2.imread(file_path)
   im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
